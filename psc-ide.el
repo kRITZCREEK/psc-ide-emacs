@@ -168,7 +168,7 @@ in a buffer"
 
       (candidates (psc-ide-company-fetcher arg company--manual-action))
 
-      (sorted t)
+      (sorted nil)
 
       (annotation (psc-ide-annotation arg))
 
