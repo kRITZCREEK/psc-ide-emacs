@@ -250,20 +250,43 @@ in a buffer"
   (save-buffer)
   (psc-ide-send (psc-ide-command-rebuild) 'psc-ide-rebuild-handler))
 
+(defun psc-ide-complol ()
+  (interactive)
+  (psc-ide-comp '(((identifier . "rofl") (type . "hello") (module . "Mine")) ((identifier . "what") (type . "hello") (module . "Mine")))))
+
+(defun psc-ide-comp (completions)
+  (print completions)
+  (let ((be (lambda (command &optional arg &rest ignored)
+              (cl-case command
+                (prefix (word-at-point))
+                (candidates (-map 'psc-ide-annotate-completion completions))
+
+                (sorted t)
+
+                (annotation (psc-ide-annotation arg))
+
+                (meta (psc-ide-string-fontified (get-text-property 0 :type arg)))
+
+                (post-completion
+                 (unless (s-blank? (get-text-property 0 :module arg))
+                   (psc-ide-add-import-impl arg (vector
+                                                 (psc-ide-filter-modules
+                                                  (list (get-text-property 0 :module arg)))))))))))
+    (company-begin-backend be)))
+
 (defun psc-ide-rebuild-handler (response)
   "Accepts a rebuild response and either displays errors/warnings
 inside the *psc-ide-rebuild* buffer, or closes it if there were
 none."
-  (let ((is-success (string= "success" (cdr (assoc 'resultType response))))
-        (result (cdr (assoc 'result response))))
-    (if (not is-success)
-        (psc-ide-display-rebuild-message "Error" (aref result 0))
-      (if (<= (length result) 0)
+  (let-alist response
+    (if (not (string= "success" .resultType))
+        (psc-ide-display-rebuild-message "Error" (aref .result 0))
+      (if (<= (length .result) 0)
           ;; If there are no warnings we close the rebuild buffer and print "OK"
           (progn
             (delete-windows-on (get-buffer-create "*psc-ide-rebuild*"))
             (message "OK"))
-        (psc-ide-display-rebuild-message "Warning" (aref result 0))))))
+        (psc-ide-display-rebuild-message "Warning" (aref .result 0))))))
 
 (defun psc-ide-display-rebuild-message (type rawMsg)
   "Takes a parsed JSON error/warning and displays it in the

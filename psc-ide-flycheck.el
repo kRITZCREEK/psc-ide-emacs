@@ -50,6 +50,7 @@
                       (put-text-property 0 1 :startColumn (cdr (assoc 'startColumn replacePos)) .errorCode)
                       (put-text-property 0 1 :endLine (cdr (assoc 'endLine replacePos)) .errorCode)
                       (put-text-property 0 1 :endColumn (cdr (assoc 'endColumn replacePos)) .errorCode)
+                      (put-text-property 0 1 :holeCompletions (append .pursIde.completions nil) .errorCode)
 
                       (push
                        (flycheck-fix-error-filename
@@ -66,6 +67,17 @@
                        errors)))))
               .result)
       errors)))
+
+(defun psc-ide-flycheck-insert-hole-suggestion ()
+  "Replace error with hole suggestion from psc compiler."
+  (interactive)
+
+  (-if-let* ((flycheck-err (car (flycheck-overlay-errors-at (point))))
+             (hole-completions (get-text-property 0 :holeCompletions (flycheck-error-id flycheck-err))))
+      (progn
+        (print hole-completions)
+        (print flycheck-err)
+        (psc-ide-comp hole-completions))))
 
 ;;;###autoload
 (defun psc-ide-flycheck-insert-suggestion ()
